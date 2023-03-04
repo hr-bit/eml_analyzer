@@ -1,7 +1,23 @@
-from typing import Optional
+from typing import Any, Optional
 
 import oletools.oleid
-from olefile import OleFileIO, isOleFile
+from olefile import isOleFile
+
+
+def is_truthy(v: Any) -> bool:
+    if v is None:
+        return False
+
+    if isinstance(v, bool):
+        return v is True
+
+    if isinstance(v, int):
+        return v > 0
+
+    try:
+        return str(v).upper() == "YES"
+    except Exception:
+        return False
 
 
 class OleID:
@@ -9,8 +25,7 @@ class OleID:
         self.oid: Optional[oletools.oleid.OleID] = None
 
         if isOleFile(data):
-            ole_file = OleFileIO(data)
-            self.oid = oletools.oleid.OleID(ole_file)
+            self.oid = oletools.oleid.OleID(data=data)
             self.oid.check()
 
     def is_encrypted(self) -> bool:
@@ -18,18 +33,39 @@ class OleID:
             return False
 
         encrypted = self.oid.get_indicator("encrypted")
-        return encrypted is not None and encrypted.value is True
+        return is_truthy(encrypted.value)
 
     def has_vba_macros(self) -> bool:
         if self.oid is None:
             return False
 
-        macros = self.oid.get_indicator("vba_macros")
-        return macros is not None and macros.value is True
+        macros = self.oid.get_indicator("vba")
+        return is_truthy(macros.value)
+
+    def has_xlm_macros(self) -> bool:
+        if self.oid is None:
+            return False
+
+        macros = self.oid.get_indicator("xlm")
+        return is_truthy(macros.value)
 
     def has_flash_objects(self) -> bool:
         if self.oid is None:
             return False
 
         flash = self.oid.get_indicator("flash")
-        return flash is not None and flash.value > 0
+        return is_truthy(flash.value)
+
+    def has_external_relationships(self) -> bool:
+        if self.oid is None:
+            return False
+
+        flash = self.oid.get_indicator("ext_rels")
+        return is_truthy(flash.value)
+
+    def has_object_pool(self) -> bool:
+        if self.oid is None:
+            return False
+
+        flash = self.oid.get_indicator("ObjectPool")
+        return is_truthy(flash.value)
